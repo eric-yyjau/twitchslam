@@ -165,6 +165,8 @@ if __name__ == "__main__":
   disp2d, disp3d = None, None
     
   if os.getenv("HEADLESS") is None:
+    # export HEADLESS=
+    print(f"create display3D")
     disp3d = Display3D()
 
   cap = cv2.VideoCapture(sys.argv[1])
@@ -203,6 +205,7 @@ if __name__ == "__main__":
   """
 
   gt_pose = None
+  est_poses = []
   if len(sys.argv) >= 3:
     gt_pose = np.load(sys.argv[2])['pose']
     # add scale param?

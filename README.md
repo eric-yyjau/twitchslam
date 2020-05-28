@@ -35,6 +35,12 @@ REVERSE=1 F=984 ./slam.py videos/test_kitti984_reverse.mp4
 tools/parse_ground_truth.py videos/groundtruth/freiburgrpy.txt videos/test_freiburgrpy525.npz 
 ```
 
+Run without display
+```
+export HEADLESS=
+```
+
+
 Classes
 -----
 

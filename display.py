@@ -1,6 +1,10 @@
 import pygame
 from pygame.locals import DOUBLEBUF
 
+# dummy display
+# import os
+# os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 class Display2D(object):
   def __init__(self, W, H):
     pygame.init()
