@@ -9,7 +9,7 @@ import json
 from optimize_g2o import optimize
 #from optimize_crappy import optimize
 
-LOCAL_WINDOW = 20
+LOCAL_WINDOW = 5 # 20
 #LOCAL_WINDOW = None
 
 class Point(object):

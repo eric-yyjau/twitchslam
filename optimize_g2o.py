@@ -23,6 +23,7 @@ def optimize(frames, points, local_window, fix_points, verbose=False, rounds=50)
   graph_frames, graph_points = {}, {}
 
   # add frames to graph
+  # each frame (absolute pose) is a vertex
   for f in (local_frames if fix_points else frames):
     pose = f.pose
     se3 = g2o.SE3Quat(pose[0:3, 0:3], pose[0:3, 3])
@@ -42,6 +43,7 @@ def optimize(frames, points, local_window, fix_points, verbose=False, rounds=50)
     graph_frames[f] = v_se3
 
   # add points to frames
+  # each point is a vertex
   for p in points:
     if not any([f in local_frames for f in p.frames]):
       continue
@@ -55,6 +57,7 @@ def optimize(frames, points, local_window, fix_points, verbose=False, rounds=50)
     graph_points[p] = pt
 
     # add edges
+    # 3D-2D correspondences
     for f, idx in zip(p.frames, p.idxs):
       if f not in graph_frames:
         continue

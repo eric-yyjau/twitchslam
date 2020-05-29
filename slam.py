@@ -222,10 +222,11 @@ if __name__ == "__main__":
     ret, frame = cap.read()
     if frame == [] or CNT == i:
       break
-    frame = cv2.resize(frame, (W, H))
+    
 
     print("\n*** frame %d/%d ***" % (i, CNT))
     if ret == True:
+      frame = cv2.resize(frame, (W, H))
       p = slam.process_frame(frame, None if gt_pose is None else np.linalg.inv(gt_pose[i]))
       # print(f"pose: {p}")
       est_poses.append(p)
