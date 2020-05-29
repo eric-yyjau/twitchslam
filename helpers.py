@@ -18,6 +18,19 @@ def hamming_distance(a, b):
   r = (1 << np.arange(8))[:,None]
   return np.count_nonzero((np.bitwise_xor(a,b) & r) != 0)
 
+def save_poses(poses, filename='test.txt', length=-1):
+  """
+  # save absolute poses to file
+  params: 
+      poses: absolute poses [poses, gt_poses]
+      filename -> string: path and name
+  """
+  # filename = f"{args.save_path}/est.txt"
+  arr = np.array(poses)[:length,:3]
+  arr = arr.reshape(-1,12)
+  np.savetxt(filename, arr)
+  return True
+
 def triangulate(pose1, pose2, pts1, pts2):
   ret = np.zeros((pts1.shape[0], 4))
   for i, p in enumerate(zip(pts1, pts2)):

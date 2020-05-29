@@ -14,6 +14,8 @@ import g2o
 from pointmap import Map, Point
 from helpers import triangulate, add_ones
 
+from pathlib import Path
+
 np.set_printoptions(suppress=True)
 
 class SLAM(object):
@@ -31,7 +33,7 @@ class SLAM(object):
     frame = Frame(self.mapp, img, self.K, verts=verts)
 
     if frame.id == 0:
-      return
+      return np.identity(4)
 
     f1 = self.mapp.frames[-1]
     f2 = self.mapp.frames[-2]
@@ -155,12 +157,16 @@ class SLAM(object):
     print("Map:      %d points, %d frames" % (len(self.mapp.points), len(self.mapp.frames)))
     print("Time:     %.2f ms" % ((time.time()-start_time)*1000.0))
     print(np.linalg.inv(f1.pose))
+    return np.linalg.inv(f1.pose)
 
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
     print("%s <video.mp4>" % sys.argv[0])
     exit(-1)
+
+  save_path = "results/kitti/"
+  Path(save_path).mkdir(exist_ok=True, parents=True)
 
   disp2d, disp3d = None, None
     
@@ -214,11 +220,15 @@ if __name__ == "__main__":
   i = 0
   while cap.isOpened():
     ret, frame = cap.read()
+    if frame == [] or CNT == i:
+      break
     frame = cv2.resize(frame, (W, H))
 
     print("\n*** frame %d/%d ***" % (i, CNT))
     if ret == True:
-      slam.process_frame(frame, None if gt_pose is None else np.linalg.inv(gt_pose[i]))
+      p = slam.process_frame(frame, None if gt_pose is None else np.linalg.inv(gt_pose[i]))
+      # print(f"pose: {p}")
+      est_poses.append(p)
     else:
       break
 
@@ -231,10 +241,17 @@ if __name__ == "__main__":
       disp2d.paint(img)
 
     i += 1
+    if i > 100:
+      break
     """
     if i == 10:
       with open('map.json', 'w') as f:
         f.write(mapp.serialize())
         exit(0)
     """
+  # save poses
+  from helpers import save_poses
+  est_poses = np.array(est_poses)
+  print(f"est_poses: {est_poses.shape}")
+  save_poses(est_poses, f"{save_path}/est_poses.txt")
 
