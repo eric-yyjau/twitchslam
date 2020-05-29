@@ -31,7 +31,7 @@ class SLAM(object):
     self.W, self.H = W, H
     self.K = K
 
-  def process_frame(self, img, pose=None, verts=None, ba_optimize=True):
+  def process_frame(self, img, pose=None, verts=None, ba_optimize=True, trianglution=False):
     start_time = time.time()
     assert img.shape[0:2] == (self.H, self.W)
     frame = Frame(self.mapp, img, self.K, verts=verts)
@@ -71,7 +71,7 @@ class SLAM(object):
     sbp_pts_count = 0
 
     # search by projection
-    if len(self.mapp.points) > 0:
+    if len(self.mapp.points) > 0 and trianglution:
       # project *all* the map points into the current frame
       map_points = np.array([p.homogeneous() for p in self.mapp.points])
       projs = np.dot(np.dot(self.K, f1.pose[:3]), map_points.T).T
@@ -99,59 +99,61 @@ class SLAM(object):
               sbp_pts_count += 1
               break
 
-    # triangulate the points we don't have matches for
-    good_pts4d = np.array([f1.pts[i] is None for i in idx1])
+    if trianglution:
+      # triangulate the points we don't have matches for
+      good_pts4d = np.array([f1.pts[i] is None for i in idx1])
 
-    # do triangulation in global frame
-    pts4d = triangulate(f1.pose, f2.pose, f1.kps[idx1], f2.kps[idx2])
-    good_pts4d &= np.abs(pts4d[:, 3]) != 0
-    pts4d /= pts4d[:, 3:]       # homogeneous 3-D coords
+      # do triangulation in global frame
+      pts4d = triangulate(f1.pose, f2.pose, f1.kps[idx1], f2.kps[idx2])
+      good_pts4d &= np.abs(pts4d[:, 3]) != 0
+      pts4d /= pts4d[:, 3:]       # homogeneous 3-D coords
 
-    # adding new points to the map from pairwise matches
-    new_pts_count = 0
-    for i,p in enumerate(pts4d):
-      if not good_pts4d[i]:
-        continue
+    if trianglution:
+      # adding new points to the map from pairwise matches
+      new_pts_count = 0
+      for i,p in enumerate(pts4d):
+        if not good_pts4d[i]:
+          continue
 
-      # check parallax is large enough
-      # TODO: learn what parallax means
-      """
-      r1 = np.dot(f1.pose[:3, :3], add_ones(f1.kps[idx1[i]]))
-      r2 = np.dot(f2.pose[:3, :3], add_ones(f2.kps[idx2[i]]))
-      parallax = r1.dot(r2) / (np.linalg.norm(r1) * np.linalg.norm(r2))
-      if parallax >= 0.9998:
-        continue
-      """
+        # check parallax is large enough
+        # TODO: learn what parallax means
+        """
+        r1 = np.dot(f1.pose[:3, :3], add_ones(f1.kps[idx1[i]]))
+        r2 = np.dot(f2.pose[:3, :3], add_ones(f2.kps[idx2[i]]))
+        parallax = r1.dot(r2) / (np.linalg.norm(r1) * np.linalg.norm(r2))
+        if parallax >= 0.9998:
+          continue
+        """
 
-      # check points are in front of both cameras
-      pl1 = np.dot(f1.pose, p)
-      pl2 = np.dot(f2.pose, p)
-      if pl1[2] < 0 or pl2[2] < 0:
-        continue
+        # check points are in front of both cameras
+        pl1 = np.dot(f1.pose, p)
+        pl2 = np.dot(f2.pose, p)
+        if pl1[2] < 0 or pl2[2] < 0:
+          continue
 
-      # reproject
-      pp1 = np.dot(self.K, pl1[:3])
-      pp2 = np.dot(self.K, pl2[:3])
+        # reproject
+        pp1 = np.dot(self.K, pl1[:3])
+        pp2 = np.dot(self.K, pl2[:3])
 
-      # check reprojection error
-      pp1 = (pp1[0:2] / pp1[2]) - f1.kpus[idx1[i]]
-      pp2 = (pp2[0:2] / pp2[2]) - f2.kpus[idx2[i]]
-      pp1 = np.sum(pp1**2)
-      pp2 = np.sum(pp2**2)
-      if pp1 > 2 or pp2 > 2:
-        continue
+        # check reprojection error
+        pp1 = (pp1[0:2] / pp1[2]) - f1.kpus[idx1[i]]
+        pp2 = (pp2[0:2] / pp2[2]) - f2.kpus[idx2[i]]
+        pp1 = np.sum(pp1**2)
+        pp2 = np.sum(pp2**2)
+        if pp1 > 2 or pp2 > 2:
+          continue
 
-      # add the point
-      try:
-        color = img[int(round(f1.kpus[idx1[i],1])), int(round(f1.kpus[idx1[i],0]))]
-      except IndexError:
-        color = (255,0,0)
-      pt = Point(self.mapp, p[0:3], color)
-      pt.add_observation(f2, idx2[i])
-      pt.add_observation(f1, idx1[i])
-      new_pts_count += 1
+        # add the point
+        try:
+          color = img[int(round(f1.kpus[idx1[i],1])), int(round(f1.kpus[idx1[i],0]))]
+        except IndexError:
+          color = (255,0,0)
+        pt = Point(self.mapp, p[0:3], color)
+        pt.add_observation(f2, idx2[i])
+        pt.add_observation(f1, idx1[i])
+        new_pts_count += 1
 
-    print("Adding:   %d new points, %d search by projection" % (new_pts_count, sbp_pts_count))
+      print("Adding:   %d new points, %d search by projection" % (new_pts_count, sbp_pts_count))
 
     # optimize the map
     if frame.id >= 4 and frame.id%5 == 0 and ba_optimize:

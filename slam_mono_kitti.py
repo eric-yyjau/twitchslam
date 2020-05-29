@@ -7,7 +7,9 @@ import time
 import cv2
 from tqdm import tqdm
 import numpy as np
-from slam import SLAM
+# from slam import SLAM
+from slam_vo import SLAM
+print(f"+++++ using slam_vo! +++++")
 from pathlib import Path
 
 # def main(vocab_path, settings_path, sequence_path):
@@ -44,7 +46,7 @@ def main(sequence_path, save_path):
         
         frame = cv2.resize(image, (W, H))
         # p = slam.process_frame(frame, None if gt_pose is None else np.linalg.inv(gt_pose[i]))
-        p = slam.process_frame(frame, None)
+        p = slam.process_frame(frame, None, ba_optimize=False)
         # print(f"pose: {p}")
         est_poses.append(p)
         # slam.process_image_mono(image, tframe)

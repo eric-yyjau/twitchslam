@@ -27,7 +27,7 @@ class SLAM(object):
     self.W, self.H = W, H
     self.K = K
 
-  def process_frame(self, img, pose=None, verts=None):
+  def process_frame(self, img, pose=None, verts=None, ba_optimize=True):
     start_time = time.time()
     assert img.shape[0:2] == (self.H, self.W)
     frame = Frame(self.mapp, img, self.K, verts=verts)
@@ -150,7 +150,7 @@ class SLAM(object):
     print("Adding:   %d new points, %d search by projection" % (new_pts_count, sbp_pts_count))
 
     # optimize the map
-    if frame.id >= 4 and frame.id%5 == 0:
+    if frame.id >= 4 and frame.id%5 == 0 and ba_optimize:
       err = self.mapp.optimize() #verbose=True)
       print("Optimize: %f units of error" % err)
 
