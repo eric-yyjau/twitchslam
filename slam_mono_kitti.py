@@ -12,6 +12,12 @@ from slam_vo import SLAM
 print(f"+++++ using slam_vo! +++++")
 from pathlib import Path
 
+class foo(object):
+    def __init__(self):
+        pass
+
+config = foo()
+config.detector = 'orb'
 # def main(vocab_path, settings_path, sequence_path):
 def main(sequence_path, save_path):
 
@@ -46,7 +52,7 @@ def main(sequence_path, save_path):
         
         frame = cv2.resize(image, (W, H))
         # p = slam.process_frame(frame, None if gt_pose is None else np.linalg.inv(gt_pose[i]))
-        p = slam.process_frame(frame, None, ba_optimize=False)
+        p = slam.process_frame(frame, None, ba_optimize=False, detector=config.detector)
         # print(f"pose: {p}")
         est_poses.append(p)
         # slam.process_image_mono(image, tframe)

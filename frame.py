@@ -8,21 +8,39 @@ np.set_printoptions(suppress=True)
 from skimage.measure import ransac
 from helpers import add_ones, poseRt, fundamentalToRt, normalize, EssentialMatrixTransform, myjet
 
-def extractFeatures(img):
-  orb = cv2.ORB_create()
-  # detection
-  pts = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8), 3000, qualityLevel=0.01, minDistance=7)
-
-  # extraction
-  kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
-  kps, des = orb.compute(img, kps)
+def extractFeatures(img, detector='orb'):
+  if detector == 'orb':
+    orb = cv2.ORB_create()
+    # detection
+    pts = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8), 3000, qualityLevel=0.01, minDistance=7)
+    # extraction
+    kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
+    kps, des = orb.compute(img, kps)
+  elif detector == 'sift':
+    pass
+    gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    # sift = cv2.SIFT_create()
+    sift = cv2.xfeatures2d.SIFT_create()
+    kps = sift.detect(gray,None)
+    # kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in ptss]
+    # kp, des = sift.detectAndCompute(gray,None)
+    kps, des = sift.compute(gray, kps)
+  else:
+    raise f"detector ({detector}) not defined"
 
   # return pts and des
   return np.array([(kp.pt[0], kp.pt[1]) for kp in kps]), des
 
-def match_frames(f1, f2):
-  bf = cv2.BFMatcher(cv2.NORM_HAMMING)
-  matches = bf.knnMatch(f1.des, f2.des, k=2)
+def match_frames(f1, f2, detector='orb'):
+  if detector == 'orb':
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+    matches = bf.knnMatch(f1.des, f2.des, k=2)
+  elif detector == 'sift':
+    # bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=False)
+    # matches = bf.match(f1.des, f2.des)
+    matcher = cv2.BFMatcher(normType=cv2.NORM_L2, crossCheck=False)
+    matches = matcher.knnMatch(f1.des, f2.des, k=2)
+    print(f"len: {len(matches)}")
 
   # Lowe's ratio test
   ret = []
@@ -64,14 +82,14 @@ def match_frames(f1, f2):
   return idx1[inliers], idx2[inliers], fundamentalToRt(model.params)
 
 class Frame(object):
-  def __init__(self, mapp, img, K, pose=np.eye(4), tid=None, verts=None):
+  def __init__(self, mapp, img, K, pose=np.eye(4), tid=None, verts=None, detector='orb'):
     self.K = np.array(K)
     self.pose = np.array(pose)
 
     if img is not None:
       self.h, self.w = img.shape[0:2]
       if verts is None:
-        self.kpus, self.des = extractFeatures(img)
+        self.kpus, self.des = extractFeatures(img, detector=detector)
       else:
         assert len(verts) < 256
         self.kpus, self.des = verts, np.array(list(range(len(verts)))*32, np.uint8).reshape(32, len(verts)).T

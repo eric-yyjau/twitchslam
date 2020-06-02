@@ -31,10 +31,10 @@ class SLAM(object):
     self.W, self.H = W, H
     self.K = K
 
-  def process_frame(self, img, pose=None, verts=None, ba_optimize=True, trianglution=False):
+  def process_frame(self, img, pose=None, verts=None, ba_optimize=True, trianglution=False, detector='orb'):
     start_time = time.time()
     assert img.shape[0:2] == (self.H, self.W)
-    frame = Frame(self.mapp, img, self.K, verts=verts)
+    frame = Frame(self.mapp, img, self.K, verts=verts, detector=detector)
 
     if frame.id == 0:
       return np.identity(4)
@@ -42,7 +42,7 @@ class SLAM(object):
     f1 = self.mapp.frames[-1]
     f2 = self.mapp.frames[-2]
 
-    idx1, idx2, Rt = match_frames(f1, f2)
+    idx1, idx2, Rt = match_frames(f1, f2, detector=detector)
 
     # add new observations if the point is already observed in the previous frame
     # TODO: consider tradeoff doing this before/after search by projection
