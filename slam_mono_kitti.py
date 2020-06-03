@@ -8,7 +8,7 @@ import cv2
 from tqdm import tqdm
 import numpy as np
 # from slam import SLAM
-from slam_vo import SLAM
+from .slam_vo import SLAM
 print(f"+++++ using slam_vo! +++++")
 from pathlib import Path
 
@@ -18,8 +18,32 @@ class foo(object):
 
 config = foo()
 config.detector = 'sift'
+
+import numpy as np
+def save_trajectory(trajectory, filename, with_time=True, timestamps=None):
+    trajectory = np.array(trajectory)
+    # save with time
+    np.savetxt(filename + ".wTime", trajectory, delimiter=' ')
+    # save without time
+    poses = trajectory[:,1:]
+    np.savetxt(filename + ".noTime", poses, delimiter=' ')
+    np.savetxt(filename + ".stamps", trajectory[:,:1], delimiter=' ')
+
+    # save with time mapped index
+    if timestamps is not None:
+        time_est = trajectory[:,:1]
+        time_idx = [np.array(timestamps).tolist().index(t) for t in time_est]
+        time_idx = np.array(time_idx).reshape(-1, 1)
+        poses_wIdx = np.concatenate((time_idx, poses), axis=1)
+        np.savetxt(filename + ".wIdx", poses_wIdx, delimiter=' ', fmt='%1.8e')
+    if with_time and timestamps is not None:
+        np.savetxt(filename, poses_wIdx, delimiter=' ', fmt='%1.8e')
+    else:
+        np.savetxt(filename, trajectory, delimiter=' ')
+
 # def main(vocab_path, settings_path, sequence_path):
-def main(sequence_path, save_path):
+# def main(sequence_path, save_path):
+def main(sequence_path, save_file='trajectory.txt', F=719, with_time=False):
 
     image_filenames, timestamps = load_images(sequence_path)
     num_images = len(image_filenames)
@@ -28,6 +52,7 @@ def main(sequence_path, save_path):
     W, H = image_0.shape[1], image_0.shape[0]
     K, Kinv = load_intrinsics(F=719, W=W, H=H)
     print(f"K = {K}")
+    print(f"save to: {save_file}")
     # slam = orbslam2.System(vocab_path, settings_path, orbslam2.Sensor.MONOCULAR)
     # slam.set_use_viewer(True)
     # slam.initialize()
@@ -37,6 +62,7 @@ def main(sequence_path, save_path):
 
 
     times_track = [0 for _ in range(num_images)]
+    time_poses = []
     print('-----')
     print('Start processing sequence ...')
     print('Images in the sequence: {0}'.format(num_images))
@@ -57,6 +83,7 @@ def main(sequence_path, save_path):
         p = slam.process_frame(frame, None, ba_optimize=False, detector=config.detector)
         # print(f"pose: {p}")
         est_poses.append(p)
+        time_poses.append(tframe)
         # slam.process_image_mono(image, tframe)
 
         t2 = time.time()
@@ -72,14 +99,25 @@ def main(sequence_path, save_path):
 
         # if ttrack < t:
         #     time.sleep(t - ttrack)
-        # if idx > 10:
-        #     break
+        if idx > 10:
+            break
 
     # save poses
-    from helpers import save_poses
-    est_poses = np.array(est_poses)
+    # from helpers import save_poses
+    # est_poses = np.array(est_poses)
+    # print(f"est_poses: {est_poses.shape}")
+    # save_poses(est_poses, f"{save_path}/est_poses.txt")
+    def pose_time(poses, time):
+        assert len(poses) == len(time)
+        arr = np.array(poses)[:,:3]
+        time = np.array(time)
+        arr = arr.reshape(-1,12)
+        time = time.reshape(-1,1)
+        return np.concatenate((time, arr), axis=1)
+    est_poses = pose_time(est_poses, time_poses)
     print(f"est_poses: {est_poses.shape}")
-    save_poses(est_poses, f"{save_path}/est_poses.txt")
+    save_trajectory(est_poses, save_file, 
+        with_time=with_time, timestamps=timestamps)
 
     # save_trajectory(slam.get_trajectory_points(), 'trajectory.txt')
 
@@ -143,30 +181,11 @@ def load_image_files(dataset):
     test_files.sort()
     return test_files
 
-def save_trajectory(trajectory, filename):
-    with open(filename, 'w') as traj_file:
-        traj_file.writelines('{time} {r00} {r01} {r02} {t0} {r10} {r11} {r12} {t1} {r20} {r21} {r22} {t2}\n'.format(
-            time=repr(t),
-            r00=repr(r00),
-            r01=repr(r01),
-            r02=repr(r02),
-            t0=repr(t0),
-            r10=repr(r10),
-            r11=repr(r11),
-            r12=repr(r12),
-            t1=repr(t1),
-            r20=repr(r20),
-            r21=repr(r21),
-            r22=repr(r22),
-            t2=repr(t2)
-        ) for t, r00, r01, r02, t0, r10, r11, r12, t1, r20, r21, r22, t2 in trajectory)
-
-
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         print('Usage: ./orbslam_mono_kitti  path_to_sequence save_path')
         save_path = './'
     else:
         save_path = sys.argv[2]
-    Path(save_path).mkdir(exist_ok=True, parents=True)
+    # Path(save_path).mkdir(exist_ok=True, parents=True)
     main(sys.argv[1], save_path)
