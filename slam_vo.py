@@ -42,9 +42,14 @@ class SLAM(object):
     f1 = self.mapp.frames[-1]
     f2 = self.mapp.frames[-2]
 
-    idx1, idx2, Rt = match_frames_v2(f1, f2, self.K, detector=detector)
-
-    # idx1, idx2, Rt = match_frames(f1, f2)
+    if detector == 'sift':
+      idx1, idx2, Rt, _ = match_frames_v2(f1, f2, self.K, detector=detector) # T12
+      # idx1, idx2, Rt, _ = match_frames_v2(f1, f1, self.K, detector=detector)
+      # print(f"Rt: {Rt}, should be identity")
+    else:
+      idx1, idx2, Rt = match_frames(f1, f2)
+      # idx1, idx2, Rt = match_frames(f1, f1)
+      # print(f"Rt: {Rt}, should be identity")
     # print(f"idx1: {idx1}, idx2: {idx2}, Rt: {Rt}")
 
     # add new observations if the point is already observed in the previous frame

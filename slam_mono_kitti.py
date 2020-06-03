@@ -27,6 +27,7 @@ def main(sequence_path, save_path):
     image_0 = cv2.imread(image_filenames[0], cv2.IMREAD_UNCHANGED)
     W, H = image_0.shape[1], image_0.shape[0]
     K, Kinv = load_intrinsics(F=719, W=W, H=H)
+    print(f"K = {K}")
     # slam = orbslam2.System(vocab_path, settings_path, orbslam2.Sensor.MONOCULAR)
     # slam.set_use_viewer(True)
     # slam.initialize()

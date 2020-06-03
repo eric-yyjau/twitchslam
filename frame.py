@@ -7,8 +7,9 @@ np.set_printoptions(suppress=True)
 
 from skimage.measure import ransac
 from helpers import add_ones, poseRt, fundamentalToRt, normalize, EssentialMatrixTransform, myjet
+from utils.utils_misc import crop_or_pad_choice
 
-def extractFeatures(img, detector='orb'):
+def extractFeatures(img, detector='orb', num_points=3000):
   if detector == 'orb':
     orb = cv2.ORB_create()
     # detection
@@ -16,26 +17,30 @@ def extractFeatures(img, detector='orb'):
     # extraction
     kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
     kps, des = orb.compute(img, kps)
+    kps = np.array([(kp.pt[0], kp.pt[1]) for kp in kps])
   elif detector == 'sift':
-    pass
     gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    # sift = cv2.SIFT_create()
     sift = cv2.xfeatures2d.SIFT_create()
-    kps = sift.detect(gray,None)
-    # kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in ptss]
-    # kp, des = sift.detectAndCompute(gray,None)
-    kps, des = sift.compute(gray, kps)
+    # kps = sift.detect(gray,None)
+    # kps, des = sift.compute(gray, kps)
+
+    # kps, des = sift.detectAndCompute(gray, None)
+    kps, des = sift.detectAndCompute(img, None)
+    x_all = np.array([p.pt for p in kps])
+    choice = crop_or_pad_choice(x_all.shape[0], num_points, shuffle=True)
+    kps = x_all[choice]
+    des = des[choice]
   else:
     raise f"detector ({detector}) not defined"
 
   # return pts and des
-  return np.array([(kp.pt[0], kp.pt[1]) for kp in kps]), des
+  return kps, des
 
 def match_frames_v2(f1, f2, K, detector='orb', if_ratio_test=True):
   from Pose_estimation import Pose_estimation
   # get variables
-  des1, kp1 = f1.des, f1.kps
-  des2, kp2 = f2.des, f2.kps
+  des1, kp1 = f1.des, f1.kpus
+  des2, kp2 = f2.des, f2.kpus
   # print(f"kp1: {kp1}, kp2: {kp2}")
   x1_all = kp1
   x2_all = kp2
@@ -64,20 +69,24 @@ def match_frames_v2(f1, f2, K, detector='orb', if_ratio_test=True):
   # return {'matches': match_quality_good, 'x1': x1, 'x2': x2}
   data = {'matches': match_quality_good, 'x1': x1, 'x2': x2}
   # solve for pose
+  # print(f"matches: {match_quality_good[:5]}")
   # x1 = data['x1']
   # x2 = data['x2']
   # K = np.identity(3)
   pose_est = Pose_estimation()
-  results = pose_est.recover_camera(K, x1, x2)
+  results = pose_est.recover_camera(K, x1, x2, threshold=3)
+  # results = pose_est.recover_camera(K, x1, x2, five_point=True, threshold=3)
   inliers = results['inliers']
   pose = results['pose']
   pose = np.concatenate((pose, np.array([[0,0,0,1]])), axis=0)
   print("Matches:  %d -> %d -> %d -> %d" % (len(f1.des), len(matches), len(inliers), sum(inliers)))
+  
   # print(f"idx1: {len(idx1)}, inliers: {inliers}")
   idx1 = np.array(idx1)
   idx2 = np.array(idx2)
+  data.update(results)
   # print(f"idx1[inliers]: {idx1[inliers.flatten() > 0]}")
-  return idx1[inliers.flatten() > 0], idx2[inliers.flatten() > 0], pose
+  return idx1[inliers.flatten() > 0], idx2[inliers.flatten() > 0], np.linalg.inv(pose), data
 
 def match_frames(f1, f2, detector='orb'):
   if detector == 'orb':

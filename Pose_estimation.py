@@ -5,7 +5,7 @@ class Pose_estimation(object):
     def __init__(self):
         pass
 
-    def recover_camera(self, K, x1, x2, five_point=False, threshold=0.1, RANSAC=True):
+    def recover_camera(self, K, x1, x2, five_point=False, threshold=0.1, RANSAC=True, show_result=True):
         if RANSAC:
             sample_method = cv2.RANSAC
         else:
@@ -18,17 +18,21 @@ class Pose_estimation(object):
             E_recover = E_5point
         else:
             F_8point, mask1 = cv2.findFundamentalMat(x1, x2, cv2.RANSAC, threshold) # based on the five-point algorithm solver in [Nister03]((1, 2) Nistér, D. An efficient solution to the five-point relative pose problem, CVPR 2003.). [SteweniusCFS](Stewénius, H., Calibrated Fivepoint solver. http://www.vis.uky.edu/~stewe/FIVEPOINT/) is also a related. 
+            # print(f"F_8point: {F_8point}")
             E_8point = K.T @ F_8point @ K
             U,S,V = np.linalg.svd(E_8point)
             E_8point = U @ np.diag([1., 1., 0.]) @ V
             # mask1 = np.ones((x1.shape[0], 1), dtype=np.uint8)
             print('8 pppppoint!')
             E_recover = E_8point
+            # print(f"E_recover: {E_recover}")
 
         # recover pose
         points, R, t, mask2 = cv2.recoverPose(E_recover, x1, x2, focal=K[0, 0], 
             pp=(K[0, 2], K[1, 2]), mask=mask1.copy())
         pose = np.concatenate((R,t), axis=1)
+        if show_result:
+            print('# (%d, %d)/%d inliers from OpenCV.'%(np.sum(mask1!=0), np.sum(mask2!=0), mask2.shape[0]))
         return {'pose': pose, 'inliers': mask2}
 
 
