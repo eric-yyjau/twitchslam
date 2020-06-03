@@ -8,3 +8,4 @@ display
 pygame
 PyOpenGL
 scikit-image
+jupyterlab

@@ -31,6 +31,54 @@ def extractFeatures(img, detector='orb'):
   # return pts and des
   return np.array([(kp.pt[0], kp.pt[1]) for kp in kps]), des
 
+def match_frames_v2(f1, f2, K, detector='orb', if_ratio_test=True):
+  from Pose_estimation import Pose_estimation
+  # get variables
+  des1, kp1 = f1.des, f1.kps
+  des2, kp2 = f2.des, f2.kps
+  # print(f"kp1: {kp1}, kp2: {kp2}")
+  x1_all = kp1
+  x2_all = kp2
+  # print(f"des1: {des1}, des2: {des2}")
+
+  # matching
+  matcher = cv2.BFMatcher(normType=cv2.NORM_L2, crossCheck=False)
+  matches = matcher.knnMatch(des1, des2, k=2)
+
+  good = []
+  all_m = []
+  
+  for m,n in matches:
+    all_m.append(m)
+    if if_ratio_test:
+      if m.distance < 0.8*n.distance:
+        good.append(m)
+  if not if_ratio_test:
+    good = all_m
+  # print(f"good: {good[0].queryIdx}")
+  idx1 = [mat.queryIdx for mat in good]
+  x1 = x1_all[idx1, :]
+  idx2 = [mat.trainIdx for mat in good]
+  x2 = x2_all[idx2, :]
+  match_quality_good = np.hstack((x1, x2))
+  # return {'matches': match_quality_good, 'x1': x1, 'x2': x2}
+  data = {'matches': match_quality_good, 'x1': x1, 'x2': x2}
+  # solve for pose
+  # x1 = data['x1']
+  # x2 = data['x2']
+  # K = np.identity(3)
+  pose_est = Pose_estimation()
+  results = pose_est.recover_camera(K, x1, x2)
+  inliers = results['inliers']
+  pose = results['pose']
+  pose = np.concatenate((pose, np.array([[0,0,0,1]])), axis=0)
+  print("Matches:  %d -> %d -> %d -> %d" % (len(f1.des), len(matches), len(inliers), sum(inliers)))
+  # print(f"idx1: {len(idx1)}, inliers: {inliers}")
+  idx1 = np.array(idx1)
+  idx2 = np.array(idx2)
+  # print(f"idx1[inliers]: {idx1[inliers.flatten() > 0]}")
+  return idx1[inliers.flatten() > 0], idx2[inliers.flatten() > 0], pose
+
 def match_frames(f1, f2, detector='orb'):
   if detector == 'orb':
     bf = cv2.BFMatcher(cv2.NORM_HAMMING)
@@ -78,6 +126,10 @@ def match_frames(f1, f2, detector='orb'):
                           min_samples=8,
                           residual_threshold=RANSAC_RESIDUAL_THRES,
                           max_trials=RANSAC_MAX_TRIALS)
+  
+  # print("Matches:  %d -> %d -> %d -> %d" % (len(f1.des), len(matches), len(inliers), sum(inliers)))
+  # return idx1[inliers], idx2[inliers], fundamentalToRt(model.params)
+
   print("Matches:  %d -> %d -> %d -> %d" % (len(f1.des), len(matches), len(inliers), sum(inliers)))
   return idx1[inliers], idx2[inliers], fundamentalToRt(model.params)
 

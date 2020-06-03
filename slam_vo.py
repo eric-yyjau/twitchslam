@@ -12,7 +12,7 @@ sys.path.append("lib/linux")
 import time
 import cv2
 from display import Display2D, Display3D
-from frame import Frame, match_frames
+from frame import Frame, match_frames, match_frames_v2
 import numpy as np
 import g2o
 from pointmap import Map, Point
@@ -42,7 +42,10 @@ class SLAM(object):
     f1 = self.mapp.frames[-1]
     f2 = self.mapp.frames[-2]
 
-    idx1, idx2, Rt = match_frames(f1, f2, detector=detector)
+    idx1, idx2, Rt = match_frames_v2(f1, f2, self.K, detector=detector)
+
+    # idx1, idx2, Rt = match_frames(f1, f2)
+    # print(f"idx1: {idx1}, idx2: {idx2}, Rt: {Rt}")
 
     # add new observations if the point is already observed in the previous frame
     # TODO: consider tradeoff doing this before/after search by projection

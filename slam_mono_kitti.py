@@ -17,7 +17,7 @@ class foo(object):
         pass
 
 config = foo()
-config.detector = 'orb'
+config.detector = 'sift'
 # def main(vocab_path, settings_path, sequence_path):
 def main(sequence_path, save_path):
 
@@ -52,6 +52,7 @@ def main(sequence_path, save_path):
         
         frame = cv2.resize(image, (W, H))
         # p = slam.process_frame(frame, None if gt_pose is None else np.linalg.inv(gt_pose[i]))
+        print(f"detector: {config.detector}")
         p = slam.process_frame(frame, None, ba_optimize=False, detector=config.detector)
         # print(f"pose: {p}")
         est_poses.append(p)

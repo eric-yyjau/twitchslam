@@ -38,8 +38,6 @@ class SLAM(object):
     f1 = self.mapp.frames[-1]
     f2 = self.mapp.frames[-2]
 
-    idx1, idx2, Rt = match_frames(f1, f2)
-
     # add new observations if the point is already observed in the previous frame
     # TODO: consider tradeoff doing this before/after search by projection
     for i,idx in enumerate(idx2):
