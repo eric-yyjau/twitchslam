@@ -43,8 +43,8 @@ def save_trajectory(trajectory, filename, with_time=True, timestamps=None):
 
 # def main(vocab_path, settings_path, sequence_path):
 # def main(sequence_path, save_path):
-def main(sequence_path, save_file='trajectory.txt', F=719, with_time=False):
-
+def main(sequence_path, save_file='trajectory.txt', F=719, with_time=False, skip_frame=1):
+    print(f"sequence_path: {sequence_path}")
     image_filenames, timestamps = load_images(sequence_path)
     num_images = len(image_filenames)
     # load intrinsics
@@ -68,6 +68,9 @@ def main(sequence_path, save_file='trajectory.txt', F=719, with_time=False):
     print('Images in the sequence: {0}'.format(num_images))
 
     for idx in tqdm(range(num_images)):
+        if idx % skip_frame != 0:
+            print(f"+++++ skip frame: {idx} +++++")
+            continue
         image = cv2.imread(image_filenames[idx], cv2.IMREAD_UNCHANGED)
         tframe = timestamps[idx]
 
@@ -99,8 +102,8 @@ def main(sequence_path, save_file='trajectory.txt', F=719, with_time=False):
 
         # if ttrack < t:
         #     time.sleep(t - ttrack)
-        if idx > 10:
-            break
+        # if idx > 10:
+        #     break
 
     # save poses
     # from helpers import save_poses
@@ -153,8 +156,8 @@ def load_images(path_to_sequence):
                 timestamps.append(float(line))
 
     return [
-        # os.path.join(path_to_sequence, 'image_0', "{0:06}.png".format(idx)) # original orbslam
-        os.path.join(path_to_sequence, 'image_2', "{0:06}.png".format(idx)) # scsfm uses image_2
+        os.path.join(path_to_sequence, 'image_0', "{0:06}.png".format(idx)) # original orbslam
+        # os.path.join(path_to_sequence, 'image_2', "{0:06}.png".format(idx)) # scsfm uses image_2
         for idx in range(len(timestamps))
     ], timestamps
 

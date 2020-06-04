@@ -2,12 +2,13 @@ import os
 import cv2
 import numpy as np
 from scipy.spatial import cKDTree
-from constants import RANSAC_RESIDUAL_THRES, RANSAC_MAX_TRIALS
+from .constants import RANSAC_RESIDUAL_THRES, RANSAC_MAX_TRIALS
 np.set_printoptions(suppress=True)
 
 from skimage.measure import ransac
-from helpers import add_ones, poseRt, fundamentalToRt, normalize, EssentialMatrixTransform, myjet
-from utils.utils_misc import crop_or_pad_choice
+from .helpers import add_ones, poseRt, fundamentalToRt, normalize, EssentialMatrixTransform, myjet
+from .utils.utils_misc import crop_or_pad_choice
+from .Pose_estimation import Pose_estimation
 
 def extractFeatures(img, detector='orb', num_points=3000):
   if detector == 'orb':
@@ -19,7 +20,11 @@ def extractFeatures(img, detector='orb', num_points=3000):
     kps, des = orb.compute(img, kps)
     kps = np.array([(kp.pt[0], kp.pt[1]) for kp in kps])
   elif detector == 'sift':
-    gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    # print(f"img: {img.shape}")
+    if len(img.shape) == 3:
+      gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    else: 
+      gray = img
     sift = cv2.xfeatures2d.SIFT_create()
     # kps = sift.detect(gray,None)
     # kps, des = sift.compute(gray, kps)
@@ -37,7 +42,6 @@ def extractFeatures(img, detector='orb', num_points=3000):
   return kps, des
 
 def match_frames_v2(f1, f2, K, detector='orb', if_ratio_test=True):
-  from Pose_estimation import Pose_estimation
   # get variables
   des1, kp1 = f1.des, f1.kpus
   des2, kp2 = f2.des, f2.kpus

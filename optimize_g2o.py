@@ -1,6 +1,6 @@
 import g2o
 import numpy as np
-from helpers import poseRt
+from .helpers import poseRt
 
 def optimize(frames, points, local_window, fix_points, verbose=False, rounds=50):
   if local_window is None:

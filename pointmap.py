@@ -1,12 +1,12 @@
-from helpers import poseRt, hamming_distance, add_ones
-from constants import CULLING_ERR_THRES
-from frame import Frame
+from .helpers import poseRt, hamming_distance, add_ones
+from .constants import CULLING_ERR_THRES
+from .frame import Frame
 import time
 import numpy as np
 import g2o
 import json
 
-from optimize_g2o import optimize
+from .optimize_g2o import optimize
 #from optimize_crappy import optimize
 
 LOCAL_WINDOW = 5 # 20

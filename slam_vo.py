@@ -13,11 +13,11 @@ sys.path.append(".")
 import time
 import cv2
 # from display import Display2D, Display3D
-from frame import Frame, match_frames, match_frames_v2
+from .frame import Frame, match_frames, match_frames_v2
 import numpy as np
 import g2o
-from pointmap import Map, Point
-from helpers import triangulate, add_ones
+from .pointmap import Map, Point
+from .helpers import triangulate, add_ones
 
 from pathlib import Path
 
