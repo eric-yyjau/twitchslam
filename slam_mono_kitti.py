@@ -43,11 +43,13 @@ def save_trajectory(trajectory, filename, with_time=True, timestamps=None):
 
 # def main(vocab_path, settings_path, sequence_path):
 # def main(sequence_path, save_path):
-def main(sequence_path, save_file='trajectory.txt', F=719, with_time=False, skip_frame=1):
+def main(sequence_path, save_file='trajectory.txt', path_to_times_file=None, 
+            dataset='kitti', F=719, with_time=False, skip_frame=1):
     print(f"sequence_path: {sequence_path}")
-    image_filenames, timestamps = load_images(sequence_path)
+    image_filenames, timestamps = load_images(sequence_path, path_to_times_file, dataset)
     num_images = len(image_filenames)
     # load intrinsics
+    print(f"image_filenames[0]: {image_filenames[0]}")
     image_0 = cv2.imread(image_filenames[0], cv2.IMREAD_UNCHANGED)
     W, H = image_0.shape[1], image_0.shape[0]
     K, Kinv = load_intrinsics(F=719, W=W, H=H)
@@ -148,20 +150,60 @@ def load_intrinsics(F, W, H):
     Kinv = np.linalg.inv(K)
     return K, Kinv
 
-def load_images(path_to_sequence):
-    timestamps = []
-    with open(os.path.join(path_to_sequence, 'times.txt')) as times_file:
-        for line in times_file:
-            if len(line) > 0:
-                timestamps.append(float(line))
+def load_images(path_to_sequence, path_to_times_file=None, dataset='kitti'):
+    if dataset == 'euroc':
+        image_files = []
+        timestamps = []
+        # assert path_to_times_file is not None, "path to time is necessary"
+        # with open(path_to_times_file) as times_file:
+        #     for line in times_file:
+        #         timestamps.append(float(line) / 1e9)
+        #         image_files.append(os.path.join(path_to_sequence, "{0}.png".format(line.rstrip())))
+        # return image_files, timestamps
+        subfolders = "/mav0/"
+        image_dir = Path(path_to_sequence + subfolders)
+        image_files = read_images_files_from_folder(image_dir, folder="cam0")
+        image_files = [str(f) for f in image_files]
+        timestamps = np.arange(len(image_files))
+        print(f"image_files: {image_files[:5]}")
+        return image_files, timestamps
+    else:
+        timestamps = []
+        with open(os.path.join(path_to_sequence, 'times.txt')) as times_file:
+            for line in times_file:
+                if len(line) > 0:
+                    timestamps.append(float(line))
 
-    return [
-        os.path.join(path_to_sequence, 'image_0', "{0:06}.png".format(idx)) # original orbslam
-        # os.path.join(path_to_sequence, 'image_2', "{0:06}.png".format(idx)) # scsfm uses image_2
-        for idx in range(len(timestamps))
-    ], timestamps
+        return [
+            os.path.join(path_to_sequence, 'image_0', "{0:06}.png".format(idx)) # original orbslam
+            # os.path.join(path_to_sequence, 'image_2', "{0:06}.png".format(idx)) # scsfm uses image_2
+            for idx in range(len(timestamps))
+        ], timestamps
+
+# from utils import read_images_files_from_folder
+def read_images_files_from_folder(drive_path, folder="rgb", ext=['png']):
+    # print(f"cid_num: {scene_data['cid_num']}")
+    # img_dir = os.path.join(drive_path, "cam%d" % scene_data["cid_num"])
+    # img_files = sorted(glob(img_dir + "/data/*.png"))
+    print(f"drive_path: {drive_path}, ext: {ext}")
+    ## given that we have matched time stamps
+    arr = np.genfromtxt(
+        f"{drive_path}/{folder}/data_f.txt", dtype="str"
+    )  # [N, 2(time, path)]
+    img_files = np.char.add(str(drive_path) + f"/{folder}/data/", arr[:, 1])
+    img_files = [f[:-3]+ext[0] for f in img_files]
+    img_files = [Path(f) for f in img_files]
+    # img_files = [f.stem+f'.{ext[0]}' for f in img_files]
+    img_files = sorted(img_files)
+
+    print(f"img_files: {img_files[0]}")
+    return img_files
+
 
 def load_image_files(dataset):
+    """
+    # used in scsfm, not used here
+    """
     # dataset
     if args.dataset == "kitti":
         image_dir = Path(args.dataset_dir + args.sequence + "/image_2/")
