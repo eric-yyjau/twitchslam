@@ -9,6 +9,7 @@ from tqdm import tqdm
 import numpy as np
 # from slam import SLAM
 from .slam_vo import SLAM
+# from .slam_vo import SLAM
 print(f"+++++ using slam_vo! +++++")
 from pathlib import Path
 
@@ -167,6 +168,17 @@ def load_images(path_to_sequence, path_to_times_file=None, dataset='kitti'):
         timestamps = np.arange(len(image_files))
         print(f"image_files: {image_files[:5]}")
         return image_files, timestamps
+    elif dataset == 'tum':
+        ## from orbslam-pybinding
+        rgb_filenames = []
+        timestamps = []
+        with open(os.path.join(path_to_sequence, 'rgb.txt')) as times_file:
+            for line in times_file:
+                if len(line) > 0 and not line.startswith('#'):
+                    t, rgb = line.rstrip().split(' ')[0:2]
+                    rgb_filenames.append(f"{path_to_sequence}/{rgb}")
+                    timestamps.append(float(t))
+        return rgb_filenames, timestamps
     else:
         timestamps = []
         with open(os.path.join(path_to_sequence, 'times.txt')) as times_file:
@@ -229,8 +241,14 @@ def load_image_files(dataset):
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         print('Usage: ./orbslam_mono_kitti  path_to_sequence save_path')
+        # python 
         save_path = './'
     else:
         save_path = sys.argv[2]
     # Path(save_path).mkdir(exist_ok=True, parents=True)
     main(sys.argv[1], save_path)
+
+    """
+    ## tum
+    F=525.0
+    """
