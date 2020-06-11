@@ -139,12 +139,13 @@ def main(sequence_path, save_file='trajectory.txt', path_to_times_file=None,
 
 
 def load_intrinsics(F, W, H):
-    if W > 1024:
-        downscale = 1024.0/W
-        F *= downscale
-        H = int(H * downscale)
-        W = 1024
-    print("using camera %dx%d with F %f" % (W,H,F))
+    # if W > 1024:
+    #     downscale = 1024.0/W
+    #     F *= downscale
+    #     H = int(H * downscale)
+    #     W = 1024
+    # print("using camera %dx%d with F %f" % (W,H,F))
+    print(f"buggy! check!!!!")
 
     # camera intrinsics
     K = np.array([[F,0,W//2],[0,F,H//2],[0,0,1]])
@@ -179,7 +180,7 @@ def load_images(path_to_sequence, path_to_times_file=None, dataset='kitti'):
                     rgb_filenames.append(f"{path_to_sequence}/{rgb}")
                     timestamps.append(float(t))
         return rgb_filenames, timestamps
-    else:
+    else: # kitti
         timestamps = []
         with open(os.path.join(path_to_sequence, 'times.txt')) as times_file:
             for line in times_file:
