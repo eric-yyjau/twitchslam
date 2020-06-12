@@ -36,9 +36,9 @@ def save_trajectory(trajectory, filename, with_time=True, timestamps=None):
         time_idx = [np.array(timestamps).tolist().index(t) for t in time_est]
         time_idx = np.array(time_idx).reshape(-1, 1)
         poses_wIdx = np.concatenate((time_idx, poses), axis=1)
-        np.savetxt(filename + ".wIdx", poses_wIdx, delimiter=' ', fmt='%1.8e')
+        np.savetxt(filename + ".wIdx", poses_wIdx, delimiter=' ', fmt='%.4f')
     if with_time and timestamps is not None:
-        np.savetxt(filename, poses_wIdx, delimiter=' ', fmt='%1.8e')
+        np.savetxt(filename, poses_wIdx, delimiter=' ', fmt='%.4f')
     else:
         np.savetxt(filename, trajectory, delimiter=' ')
 
